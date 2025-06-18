@@ -1,0 +1,28 @@
+# Python and Flask
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+instance/
+*.sqlite3
+.env
+
+# VS Code
+.vscode/
+
+# Mac & Windows OS junk
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# Alembic cache
+migrations/__pycache__/
+
+# Pipenv and poetry
+Pipfile.lock
+poetry.lock

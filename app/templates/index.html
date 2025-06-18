@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Quote Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #0f172a, #1e293b);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 3px;
+      height: 3px;
+      background: white;
+      border-radius: 50%;
+      box-shadow:
+        50px 100px white,
+        120px 230px white,
+        250px 80px white,
+        340px 150px white,
+        480px 300px white,
+        600px 90px white,
+        720px 200px white,
+        880px 50px white,
+        990px 180px white,
+        1100px 250px white,
+        1200px 100px white,
+        1300px 220px white,
+        300px 400px white,
+        160px 280px white,
+        560px 370px white,
+        670px 160px white,
+        870px 310px white,
+        1050px 100px white,
+        1150px 350px white,
+        1280px 180px white;
+      opacity: 0.3;
+      z-index: -1;
+    }
+  </style>
+</head>
+<body class="text-gray-200 p-6 min-h-screen">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-5xl font-extrabold mb-10 text-center text-teal-300 drop-shadow-sm">
+      ✨ Your Personal AI Motivator
+    </h1>
+
+    <!-- Form -->
+    <form id="quoteForm" class="flex flex-col sm:flex-row items-center gap-4 mb-10">
+      <input
+        type="text"
+        id="theme"
+        name="theme"
+        placeholder="e.g. resilience, curiosity, leadership"
+        class="flex-grow px-4 py-3 rounded-xl bg-slate-100 text-gray-800 border border-gray-300 shadow focus:outline-none focus:ring-2 focus:ring-teal-500"
+        required
+      >
+      <button
+        type="submit"
+        class="bg-teal-500 text-white px-6 py-3 rounded-xl shadow hover:bg-teal-600 transition font-semibold"
+      >
+        🚀 Generate
+      </button>
+    </form>
+
+    <!-- Spinner -->
+    <div id="loadingSpinner" class="hidden flex justify-center my-4">
+      <svg class="animate-spin h-8 w-8 text-teal-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+    </div>
+
+    <!-- Generated Quote -->
+    <div id="generatedQuote" class="mb-10 bg-slate-800 p-6 rounded-2xl shadow-xl hidden transition duration-500">
+      <p id="quoteText" class="text-lg text-center font-medium text-teal-200"></p>
+    </div>
+
+    <!-- Toggle Button -->
+    <button id="toggleHistoryBtn" class="mb-6 px-5 py-2 rounded-full bg-gradient-to-r from-teal-700 to-teal-500 text-white hover:from-blue-700 hover:to-blue-500 transition font-semibold shadow">
+      Show Quote History
+    </button>
+
+    <!-- Quote History -->
+    <div id="historySection" class="hidden">
+      <h2 class="text-2xl font-bold mb-4 text-teal-300">Previous Quotes</h2>
+      <ul id="quoteList" class="space-y-4">
+        {% for q in quotes %}
+        <li class="bg-slate-700 p-4 rounded-xl shadow-md border border-teal-500 transition hover:scale-[1.01]">
+          <p class="font-semibold text-sm text-teal-300">Theme: {{ q.theme }}</p>
+          <p class="text-teal-100">{{ q.quote }}</p>
+          <p class="text-xs text-gray-400 mt-2">Generated at {{ q.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+          <button onclick="copyToClipboard(this)" class="mt-2 text-sm text-teal-400 hover:underline">📋 Copy</button>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('quoteForm');
+    const themeInput = document.getElementById('theme');
+    const quoteSection = document.getElementById('generatedQuote');
+    const quoteText = document.getElementById('quoteText');
+    const quoteList = document.getElementById('quoteList');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const toggleHistoryBtn = document.getElementById('toggleHistoryBtn');
+    const historySection = document.getElementById('historySection');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const theme = themeInput.value.trim();
+      if (!theme) return;
+
+      loadingSpinner.classList.remove('hidden');
+      quoteSection.classList.add('hidden');
+
+      try {
+        const response = await fetch('/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme })
+        });
+
+        const data = await response.json();
+
+        if (data.quote) {
+          quoteText.textContent = data.quote;
+          quoteSection.classList.remove('hidden');
+
+          const li = document.createElement('li');
+          li.className = "bg-slate-700 p-4 rounded-xl shadow-md border border-teal-500 transition hover:scale-[1.01] opacity-0";
+
+          const themePara = document.createElement('p');
+          themePara.className = "font-semibold text-sm text-teal-300";
+          themePara.textContent = `Theme: ${data.theme}`;
+
+          const quotePara = document.createElement('p');
+          quotePara.className = "text-teal-100";
+          quotePara.textContent = data.quote;
+
+          const datePara = document.createElement('p');
+          datePara.className = "text-xs text-gray-400 mt-2";
+          const now = new Date();
+          datePara.textContent = `Generated at ${now.toLocaleString()}`;
+
+          const copyBtn = document.createElement('button');
+          copyBtn.className = "mt-2 text-sm text-teal-400 hover:underline";
+          copyBtn.textContent = "📋 Copy";
+          copyBtn.onclick = () => copyToClipboard(copyBtn, data.quote);
+
+          li.appendChild(themePara);
+          li.appendChild(quotePara);
+          li.appendChild(datePara);
+          li.appendChild(copyBtn);
+
+          quoteList.insertBefore(li, quoteList.firstChild);
+          setTimeout(() => li.classList.add("opacity-100"), 50);
+
+          themeInput.value = "";
+          themeInput.focus();
+        } else {
+          alert("Something went wrong. Please try again.");
+        }
+
+      } catch (error) {
+        console.error("Error:", error);
+        alert("An error occurred. Please check your connection.");
+      } finally {
+        loadingSpinner.classList.add('hidden');
+      }
+    });
+
+    toggleHistoryBtn.addEventListener('click', () => {
+      historySection.classList.toggle('hidden');
+      toggleHistoryBtn.textContent = historySection.classList.contains('hidden')
+        ? "Show Quote History"
+        : "Hide Quote History";
+    });
+
+    function copyToClipboard(button, quoteText = null) {
+      const quote = quoteText || button.previousElementSibling.previousElementSibling.textContent;
+      navigator.clipboard.writeText(quote);
+      button.textContent = '✅ Copied!';
+      setTimeout(() => button.textContent = '📋 Copy', 1500);
+    }
+
+    // Auto-refresh quotes section every 60s
+    setInterval(() => {
+      fetch("/dashboard")
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newList = doc.getElementById("quoteList");
+          if (newList) {
+            quoteList.innerHTML = newList.innerHTML;
+          }
+        });
+    }, 60000);
+  </script>
+</body>
+</html>
