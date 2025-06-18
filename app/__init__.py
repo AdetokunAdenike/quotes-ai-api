@@ -37,6 +37,6 @@ def create_app():
     # Create tables
     with app.app_context():
         from .models import Quote
-        db.create_all()
+       # db.create_all()
 
     return app
