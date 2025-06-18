@@ -4,8 +4,6 @@ __pycache__/
 *.pyo
 *.pyd
 *.log
-instance/
-*.sqlite3
 .env
 
 # VS Code

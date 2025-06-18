@@ -10,24 +10,15 @@ migrate = Migrate()
 client = None  # Global OpenRouter client
 
 def create_app():
-    # Load local .env only in development (safe to leave even in production)
-    load_dotenv()
+    load_dotenv()  # Still safe to keep
 
     app = Flask(__name__, instance_relative_config=True)
 
-    # Check if PipeOps/Postgres environment vars exist
-    pg_user = os.getenv("PGUSER")
-    pg_password = os.getenv("PGPASSWORD")
-    pg_host = os.getenv("PGHOST")
-    pg_port = os.getenv("PGPORT", "5432")
-    pg_db = os.getenv("PGDATABASE")
+    # DATABASE URL (PipeOps or .env should set this)
+    database_url = os.getenv("DATABASE_URL")
 
-    if pg_user and pg_password and pg_host and pg_db:
-        database_url = f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
-    else:
-        # Fallback to SQLite for local development
-        sqlite_path = os.path.join(app.instance_path, 'quotes.db')
-        database_url = f"sqlite:///{sqlite_path}"
+    if not database_url:
+        raise RuntimeError("DATABASE_URL environment variable is not set. Please configure it in PipeOps.")
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -45,13 +36,7 @@ def create_app():
     from .routes import quote_bp
     app.register_blueprint(quote_bp)
 
-    # Ensure instance folder exists
-    try:
-        os.makedirs(app.instance_path, exist_ok=True)
-    except OSError:
-        pass
-
-    # Create tables if not already existing
+    # Create tables on startup (in prod this happens once, migrations are preferred later)
     with app.app_context():
         from .models import Quote
         db.create_all()
