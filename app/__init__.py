@@ -2,7 +2,6 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from dotenv import load_dotenv
 from openai import OpenAI
 
 db = SQLAlchemy()
@@ -10,19 +9,24 @@ migrate = Migrate()
 client = None  # Global OpenRouter client
 
 def create_app():
-    load_dotenv()  # Still safe to keep
-
     app = Flask(__name__, instance_relative_config=True)
 
-    # DATABASE URL (PipeOps or .env should set this)
-    database_url = os.getenv("DATABASE_URL")
+    # Construct DATABASE_URL from PipeOps-provided vars
+    pg_user = os.getenv("PGUSER")
+    pg_password = os.getenv("PGPASSWORD")
+    pg_host = os.getenv("PGHOST")
+    pg_port = os.getenv("PGPORT", "5432")
+    pg_db = os.getenv("PGDATABASE")
 
-    if not database_url:
-        raise RuntimeError("DATABASE_URL environment variable is not set. Please configure it in PipeOps.")
+    if all([pg_user, pg_password, pg_host, pg_db]):
+        app.config["SQLALCHEMY_DATABASE_URI"] = (
+            f"postgresql://{pg_user}:{pg_password}@{pg_host}:{pg_port}/{pg_db}"
+        )
+    else:
+        raise RuntimeError("Missing Postgres environment variables; deployment will fail.")
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.secret_key = os.getenv("SECRET_KEY", "fallback_dev_key")
+    app.secret_key = os.getenv("SECRET_KEY") or os.getenv("POSTGRES_PASSWORD") or "fallback_dev_key"
 
     global client
     client = OpenAI(
@@ -36,7 +40,6 @@ def create_app():
     from .routes import quote_bp
     app.register_blueprint(quote_bp)
 
-    # Create tables on startup (in prod this happens once, migrations are preferred later)
     with app.app_context():
         from .models import Quote
         db.create_all()
