@@ -35,10 +35,10 @@ def generate_quote():
 
     try:
         headers = {
-            "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
-            "HTTP-Referer": "http://localhost:5000",
-            "Content-Type": "application/json"
-        }
+    "Authorization": f"Bearer {os.getenv('OPENROUTER_API_KEY')}",
+    "Referer": request.host_url.rstrip("/"),
+    "Content-Type": "application/json"
+}
 
         payload = {
             "model": "mistralai/mistral-small-3.1-24b-instruct",
